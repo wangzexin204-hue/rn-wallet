@@ -1,0 +1,30 @@
+# codemagic.yaml - rn-wallet 纯无签名IPA构建 (RN17.x + Xcode17)
+workflows:
+  ios-unsigned-ipa-build:
+    name: RN17 Wallet - Xcode17 无签名IPA
+    max_build_duration: 60
+    environment:
+      node: 18.20.3
+      ruby: 3.3.5
+      xcode: 17.0
+      cocoapods: 1.15.4
+      vars:
+        SCHEME: "rnwallet" # 仅替换为你的Xcode Scheme名
+        CONFIGURATION: "Release"
+    scripts:
+      - npm install
+      - cd ios && pod install --no-repo-update
+      - xcodebuild clean -workspace $SCHEME.xcworkspace -scheme $SCHEME -configuration $CONFIGURATION -quiet
+      # 归档+关闭签名校验
+      - xcodebuild archive -workspace $SCHEME.xcworkspace -scheme $SCHEME -configuration $CONFIGURATION -archivePath build/$SCHEME.xcarchive -destination 'generic/platform=iOS' -quiet CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+      # 导出无签名IPA，无需plist
+      - xcodebuild -exportArchive -archivePath build/$SCHEME.xcarchive -exportPath build/ipa -quiet CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO -exportFormat IPA
+    artifacts:
+      - ios/build/ipa/*.ipa
+    cache:
+      cache_paths:
+        - node_modules
+        - ios/Pods
+        - ~/.cocoapods
+        - ~/.npm
+        - ~/.rbenv
